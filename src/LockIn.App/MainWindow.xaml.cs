@@ -80,6 +80,28 @@ public partial class MainWindow : Window
             };
 
             session.Validate();
+
+            var alreadyOpen = _guardian.FindDisallowedInteractiveProcessNames(session);
+            if (alreadyOpen.Count > 0)
+            {
+                var shown = alreadyOpen.Take(10).Select(name => "• " + name + ".exe");
+                var more = alreadyOpen.Count > 10
+                    ? $"{Environment.NewLine}…and {alreadyOpen.Count - 10} more."
+                    : string.Empty;
+
+                MessageBox.Show(
+                    "Before LOCK-IN starts, close these currently open apps or add them to the allow-list:" +
+                    Environment.NewLine + Environment.NewLine +
+                    string.Join(Environment.NewLine, shown) +
+                    more +
+                    Environment.NewLine + Environment.NewLine +
+                    "This safety check prevents LOCK-IN from closing an app that may contain unsaved work.",
+                    "Pre-flight check",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
             await _sessionStore.SaveAsync(session);
             BeginEnforcement(session);
         }
