@@ -11,6 +11,11 @@
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <PublishTrimmed>false</PublishTrimmed>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <Company>LOCK-IN</Company>
+    <Product>LOCK-IN</Product>
+    <Description>A local-first Windows focus application.</Description>
+    <RepositoryUrl>https://github.com/ahpa5246-lgtm/LOCK-IN</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

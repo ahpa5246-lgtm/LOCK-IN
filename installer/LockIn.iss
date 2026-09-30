@@ -1,5 +1,7 @@
 #define MyAppName "LOCK-IN"
-#define MyAppVersion "1.0.0"
+#ifndef MyAppVersion
+  #define MyAppVersion "0.1.0"
+#endif
 #define MyAppPublisher "LOCK-IN"
 #define MyAppExeName "LOCK-IN.exe"
 
