@@ -1,0 +1,22 @@
+# .NET
+bin/
+obj/
+artifacts/
+TestResults/
+*.user
+*.suo
+*.cache
+*.log
+
+# IDE
+.vs/
+.idea/
+.vscode/
+
+# Inno Setup
+installer/Output/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
