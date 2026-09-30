@@ -1,0 +1,29 @@
+name: CI
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+permissions:
+  contents: read
+jobs:
+  test-and-build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Restore
+        run: dotnet restore LOCK-IN.sln
+      - name: Build
+        run: dotnet build LOCK-IN.sln -c Release --no-restore
+      - name: Test
+        run: dotnet test LOCK-IN.sln -c Release --no-build --logger "trx;LogFileName=tests.trx"
+      - name: Publish Windows x64
+        run: dotnet publish src/LockIn.App/LockIn.App.csproj -c Release -r win-x64 --self-contained true --no-restore -o artifacts/publish
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LOCK-IN-win-x64
+          path: artifacts/publish
+          if-no-files-found: error

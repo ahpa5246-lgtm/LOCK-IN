@@ -1,0 +1,141 @@
+<Window x:Class="LockIn.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="LOCK-IN"
+        Width="1100"
+        Height="760"
+        MinWidth="920"
+        MinHeight="680"
+        Background="{StaticResource BackgroundBrush}"
+        Foreground="{StaticResource TextBrush}"
+        WindowStartupLocation="CenterScreen"
+        Closing="Window_Closing">
+    <Grid Margin="28">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid Margin="0,0,0,22">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="LOCK—IN" FontSize="28" FontWeight="Black"/>
+                <TextBlock Text="Your computer, reduced to what the mission needs."
+                           Foreground="{StaticResource MutedBrush}" Margin="0,5,0,0"/>
+            </StackPanel>
+            <Border Grid.Column="1" Background="#151C26" CornerRadius="16" Padding="14,8">
+                <TextBlock x:Name="HeaderStatusText" Text="READY" Foreground="{StaticResource AccentBrush}" FontWeight="Bold"/>
+            </Border>
+        </Grid>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.95*"/>
+                <ColumnDefinition Width="1.05*"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Background="{StaticResource CardBrush}" CornerRadius="20" Padding="24" Margin="0,0,12,0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="MISSION SETUP" FontWeight="Bold" FontSize="13" Foreground="{StaticResource MutedBrush}"/>
+                        <TextBlock Text="What are you locking in for?" FontSize="23" FontWeight="SemiBold" Margin="0,8,0,18"/>
+                        <TextBlock Text="Mission name" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,6"/>
+                        <TextBox x:Name="MissionTextBox" Text="Deep work" FontSize="15"/>
+                        <TextBlock Text="Duration" Foreground="{StaticResource MutedBrush}" Margin="0,18,0,6"/>
+                        <ComboBox x:Name="DurationComboBox" SelectedIndex="1">
+                            <ComboBoxItem Content="25 minutes" Tag="25"/>
+                            <ComboBoxItem Content="50 minutes" Tag="50"/>
+                            <ComboBoxItem Content="90 minutes" Tag="90"/>
+                            <ComboBoxItem Content="2 hours" Tag="120"/>
+                            <ComboBoxItem Content="3 hours" Tag="180"/>
+                            <ComboBoxItem Content="4 hours" Tag="240"/>
+                        </ComboBox>
+                        <TextBlock Text="Allowed apps" Foreground="{StaticResource MutedBrush}" Margin="0,18,0,6"/>
+                        <TextBlock Text="Pick the .exe files you genuinely need. Everything else with a normal desktop window is treated as a distraction."
+                                   TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="0,0,0,8"/>
+                        <ListBox x:Name="AllowedAppsList" Height="120"/>
+                        <WrapPanel Margin="0,6,0,6">
+                            <Button x:Name="AddAppButton" Content="+ Add application" Click="AddAppButton_Click"/>
+                            <Button x:Name="RemoveAppButton" Content="Remove selected" Click="RemoveAppButton_Click"/>
+                        </WrapPanel>
+                        <CheckBox x:Name="StrictModeCheckBox" Content="Strict Mode — no early exit inside LOCK-IN"/>
+                        <CheckBox x:Name="StartupCheckBox" Content="Start LOCK-IN with Windows"
+                                  Checked="StartupCheckBox_Changed" Unchecked="StartupCheckBox_Changed"/>
+                        <Border Background="#0D1118" CornerRadius="12" Padding="12" Margin="0,12,0,12">
+                            <TextBlock TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" FontSize="12">
+                                Strict Mode adds commitment friction; it does not disable Task Manager or Windows recovery.
+                                The session always expires automatically at the chosen time.
+                            </TextBlock>
+                        </Border>
+                        <Button x:Name="StartMissionButton" Content="START MISSION"
+                                Background="{StaticResource AccentBrush}" Foreground="#07110B"
+                                FontSize="15" Padding="18,13" Click="StartMissionButton_Click"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+            <Border Grid.Column="1" Background="{StaticResource CardBrush}" CornerRadius="20" Padding="24" Margin="12,0,0,0">
+                <Grid>
+                    <Grid x:Name="IdlePanel">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="330">
+                            <TextBlock Text="◌" FontSize="64" Foreground="#293548" HorizontalAlignment="Center"/>
+                            <TextBlock Text="No active mission" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,8"/>
+                            <TextBlock Text="Choose the tools you need, decide the duration, then commit."
+                                       TextAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"/>
+                        </StackPanel>
+                    </Grid>
+                    <Grid x:Name="ActivePanel" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <StackPanel>
+                            <TextBlock x:Name="ActiveMissionText" Text="Deep work" FontSize="25" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="ActiveModeText" Text="STRICT MODE" Foreground="{StaticResource AccentBrush}" Margin="0,6,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                            <TextBlock x:Name="CountdownText" Text="00:50:00" FontSize="58" FontWeight="Black" HorizontalAlignment="Center"/>
+                            <TextBlock Text="BOSS HEALTH" Foreground="{StaticResource MutedBrush}" FontSize="11" FontWeight="Bold"
+                                       HorizontalAlignment="Center" Margin="0,18,0,7"/>
+                            <ProgressBar x:Name="BossHealthBar" Height="12" Minimum="0" Maximum="100" Value="100"/>
+                            <TextBlock x:Name="SessionSummaryText" Foreground="{StaticResource MutedBrush}"
+                                       HorizontalAlignment="Center" Margin="0,10,0,22"/>
+                            <TextBlock Text="Recently blocked" Foreground="{StaticResource MutedBrush}" FontWeight="Bold" Margin="0,0,0,6"/>
+                            <ListBox x:Name="BlockedLogList" Height="125"/>
+                        </StackPanel>
+                        <Button Grid.Row="2" x:Name="EndSessionButton" Content="End session early"
+                                Background="#2A1E23" Foreground="{StaticResource DangerBrush}"
+                                HorizontalAlignment="Left" Click="EndSessionButton_Click"/>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+        <Border Grid.Row="2" Background="{StaticResource CardAltBrush}" CornerRadius="16" Padding="18,13" Margin="0,18,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="FOCUS" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                    <TextBlock x:Name="TotalFocusText" Text="0 min" FontSize="20" FontWeight="Bold"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="MISSIONS" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                    <TextBlock x:Name="SessionsText" Text="0" FontSize="20" FontWeight="Bold"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="XP" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                    <TextBlock x:Name="XpText" Text="0" FontSize="20" FontWeight="Bold"/>
+                </StackPanel>
+                <StackPanel Grid.Column="3">
+                    <TextBlock Text="STREAK" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                    <TextBlock x:Name="StreakText" Text="0 days" FontSize="20" FontWeight="Bold"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,35 @@
+name: Release
+on:
+  push:
+    tags:
+      - "v*"
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Restore
+        run: dotnet restore LOCK-IN.sln
+      - name: Test
+        run: dotnet test LOCK-IN.sln -c Release --no-restore
+      - name: Publish
+        run: dotnet publish src/LockIn.App/LockIn.App.csproj -c Release -r win-x64 --self-contained true --no-restore -o artifacts/publish
+      - name: Create portable ZIP
+        shell: pwsh
+        run: Compress-Archive -Path artifacts/publish/* -DestinationPath artifacts/LOCK-IN-win-x64.zip -Force
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+      - name: Build installer
+        shell: pwsh
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\LockIn.iss'
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" artifacts/LOCK-IN-win-x64.zip artifacts/LOCK-IN-Setup.exe --generate-notes --title "LOCK-IN ${{ github.ref_name }}"
