@@ -120,6 +120,7 @@ public partial class MainWindow : Window
 
         IdlePanel.Visibility = Visibility.Collapsed;
         ActivePanel.Visibility = Visibility.Visible;
+        WorkspaceTabs.SelectedIndex = 2;
         HeaderStatusText.Text = "LOCKED IN";
 
         ActiveMissionText.Text = session.MissionName;

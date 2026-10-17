@@ -10,6 +10,26 @@
         <SolidColorBrush x:Key="AccentBrush" Color="#7CFFB2"/>
         <SolidColorBrush x:Key="DangerBrush" Color="#FF6B7A"/>
 
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="{StaticResource CardBrush}"/>
+            <Setter Property="Padding" Value="18,12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="TabSurface" Background="{TemplateBinding Background}" BorderThickness="0,0,0,3" BorderBrush="Transparent" Padding="{TemplateBinding Padding}" Margin="0,0,8,0">
+                            <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True"><Setter TargetName="TabSurface" Property="BorderBrush" Value="{StaticResource AccentBrush}"/></Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="TabSurface" Property="BorderBrush" Value="{StaticResource TextBrush}"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style TargetType="Button">
             <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
             <Setter Property="Background" Value="#253044"/>
