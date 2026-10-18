@@ -8,6 +8,8 @@ Core journey: Session setup → allowed applications → active focus → progre
 ## Decision and implementation
 Replace crowded two-column dashboard with four named destinations using existing working controls. Starting/restoring a session opens Focus automatically. Keep existing process guardian safety behavior and restrictions. No empty scheduling page is invented.
 
+The persistence follow-up covers the existing crash/restart promise rather than adding another screen. A saved Strict session is exercised through the real `SessionStore`, including its normalized application allow-list. If Windows temporarily denies access to `active-session.json`, startup now treats the session as unavailable instead of propagating `IOException` and terminating the app; the store still attempts its existing quarantine path, which safely tolerates the same file lock.
+
 Alternative: decorate the existing home page while leaving workflows and state bugs unchanged. Rejected because appearance cannot repair lost results or crowded controls. Existing architecture remains intact.
 
 ## Reference research
@@ -19,11 +21,13 @@ https://opalapp.com/
 Web-text inspection is not a visual screenshot comparison. These sources are a starting shortlist, not completed visual evidence. Do not mark the comparative design gate passed. A missing or inaccessible visual reference remains an open item.
 
 ## Evidence and harsh self-review
-XAML parses as XML. .NET SDK/Windows unavailable; compilation, interaction, screenshots and enforcement remain unverified. Existing Windows CI must pass. This is a draft, not visual approval.
+The existing Windows CI already restores, builds, tests, publishes a self-contained Windows x64 application and builds the Inno Setup installer. Run 39078795715 passed all of those steps for the workspace split and produced the 126,380,504-byte `LOCK-IN-windows` artifact with recorded SHA-256 digest `9a4201454b84e5d76a4f10bfb4b2e1a2cabbb3bf3a6e3ccc380211739954f9ac`.
+
+The locked-session regression was isolated in test-only run 39108261432: the solution built with zero warnings/errors, 11 tests passed, and the new test failed at `SessionStore.LoadActive` with `System.IO.IOException` from `File.ReadAllText`. The bounded fix and Strict-session round-trip test require a fresh green Windows run before this follow-up can be considered verified. CI compilation is not actual desktop interaction: process termination, close resistance, keyboard navigation, screenshots and responsive window states remain unverified.
 
 The Senior Skills example visual gate was run and correctly returned BLOCKED_UNVERIFIED_DESIGN; its draft lacks verified asset licenses. That result is framework evidence, not a project-specific visual pass. Actual screenshots, app-commit binding, keyboard/RTL checks, and task observations are required before release readiness.
 
 ## Next acceptance boundary
-Build on Windows, test preflight and strict mode, inspect 1100px and 760px windows, then commission original purposeful illustration. Arabic localization and schedules remain absent.
+Exercise preflight and active Strict Mode against disposable Windows applications, including forced process termination and reopen/resume. Inspect 1100px and 760px windows, then commission original purposeful illustration. Arabic localization and schedules remain absent.
 
 Rollback: revert this milestone branch before merge. Do not merge or deploy automatically. Future runs must inspect open PRs and continue this branch before creating duplicate work.
