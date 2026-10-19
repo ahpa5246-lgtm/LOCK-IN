@@ -120,6 +120,7 @@ public partial class MainWindow : Window
 
         IdlePanel.Visibility = Visibility.Collapsed;
         ActivePanel.Visibility = Visibility.Visible;
+        WorkspaceTabs.SelectedIndex = 2;
         HeaderStatusText.Text = "LOCKED IN";
 
         ActiveMissionText.Text = session.MissionName;
@@ -146,7 +147,7 @@ public partial class MainWindow : Window
     private void SetSetupEnabled(bool enabled)
     {
         MissionTextBox.IsEnabled = enabled;
-        DurationComboBox.IsEnabled = enabled;
+        DurationMinutesTextBox.IsEnabled = enabled;
         AddAppButton.IsEnabled = enabled;
         RemoveAppButton.IsEnabled = enabled;
         StrictModeCheckBox.IsEnabled = enabled;
@@ -291,14 +292,7 @@ public partial class MainWindow : Window
 
     private int GetSelectedDuration()
     {
-        if (DurationComboBox.SelectedItem is ComboBoxItem item &&
-            item.Tag is string tag &&
-            int.TryParse(tag, out var minutes))
-        {
-            return minutes;
-        }
-
-        return 50;
+        return FocusDuration.ParseMinutes(DurationMinutesTextBox.Text);
     }
 
     private void OnProcessBlocked(BlockedProcessEvent blocked)
