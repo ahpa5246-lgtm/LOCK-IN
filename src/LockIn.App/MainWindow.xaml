@@ -45,14 +45,10 @@
                             <TextBlock Text="Mission name" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,6" />
                             <TextBox x:Name="MissionTextBox" Text="Deep work" FontSize="15" />
                             <TextBlock Text="Duration" Foreground="{StaticResource MutedBrush}" Margin="0,18,0,6" />
-                            <ComboBox x:Name="DurationComboBox" SelectedIndex="1">
-                                <ComboBoxItem Content="25 minutes" Tag="25" />
-                                <ComboBoxItem Content="50 minutes" Tag="50" />
-                                <ComboBoxItem Content="90 minutes" Tag="90" />
-                                <ComboBoxItem Content="2 hours" Tag="120" />
-                                <ComboBoxItem Content="3 hours" Tag="180" />
-                                <ComboBoxItem Content="4 hours" Tag="240" />
-                            </ComboBox>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBox x:Name="DurationMinutesTextBox" Width="130" Text="25" FontSize="16" MaxLength="3" ToolTip="Choose from 3 to 720 minutes"/>
+                                <TextBlock Text="minutes (minimum 3, maximum 720)" VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" Margin="12,0,0,0"/>
+                            </StackPanel>
                             <CheckBox x:Name="StrictModeCheckBox" Content="Strict Mode — no early exit inside LOCK-IN" />
                             <Border Background="#F7F0FF" CornerRadius="12" Padding="12" Margin="0,12,0,12">
                                 <TextBlock TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" FontSize="12">
