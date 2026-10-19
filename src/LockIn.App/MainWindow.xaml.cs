@@ -292,13 +292,7 @@ public partial class MainWindow : Window
 
     private int GetSelectedDuration()
     {
-        if (!int.TryParse(DurationMinutesTextBox.Text.Trim(), out var minutes) ||
-            minutes < 3 || minutes > 720)
-        {
-            throw new InvalidOperationException("Enter a duration between 3 and 720 minutes.");
-        }
-
-        return minutes;
+        return FocusDuration.ParseMinutes(DurationMinutesTextBox.Text);
     }
 
     private void OnProcessBlocked(BlockedProcessEvent blocked)
