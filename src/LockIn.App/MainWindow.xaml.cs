@@ -147,7 +147,7 @@ public partial class MainWindow : Window
     private void SetSetupEnabled(bool enabled)
     {
         MissionTextBox.IsEnabled = enabled;
-        DurationComboBox.IsEnabled = enabled;
+        DurationMinutesTextBox.IsEnabled = enabled;
         AddAppButton.IsEnabled = enabled;
         RemoveAppButton.IsEnabled = enabled;
         StrictModeCheckBox.IsEnabled = enabled;
@@ -292,14 +292,13 @@ public partial class MainWindow : Window
 
     private int GetSelectedDuration()
     {
-        if (DurationComboBox.SelectedItem is ComboBoxItem item &&
-            item.Tag is string tag &&
-            int.TryParse(tag, out var minutes))
+        if (!int.TryParse(DurationMinutesTextBox.Text.Trim(), out var minutes) ||
+            minutes < 3 || minutes > 720)
         {
-            return minutes;
+            throw new InvalidOperationException("Enter a duration between 3 and 720 minutes.");
         }
 
-        return 50;
+        return minutes;
     }
 
     private void OnProcessBlocked(BlockedProcessEvent blocked)
