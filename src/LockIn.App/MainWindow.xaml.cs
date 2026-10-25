@@ -15,6 +15,7 @@ public partial class MainWindow : Window
     private readonly SessionStore _sessionStore;
     private readonly StatsStore _statsStore;
     private readonly ProcessGuardian _guardian;
+    private readonly IUserDialog _dialogs;
     private readonly DispatcherTimer _uiTimer;
     private readonly HashSet<string> _allowedApps = new(StringComparer.OrdinalIgnoreCase);
 
@@ -23,17 +24,23 @@ public partial class MainWindow : Window
     private bool _internalStartupToggleChange;
 
     public MainWindow()
+        : this(GetDefaultDataRoot(), new ProcessGuardian(), new WpfUserDialog())
+    {
+    }
+
+    internal MainWindow(string dataRoot, ProcessGuardian guardian, IUserDialog dialogs)
     {
         InitializeComponent();
 
-        var dataRoot = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "LOCK-IN");
+        ArgumentException.ThrowIfNullOrWhiteSpace(dataRoot);
+        ArgumentNullException.ThrowIfNull(guardian);
+        ArgumentNullException.ThrowIfNull(dialogs);
         Directory.CreateDirectory(dataRoot);
 
         _sessionStore = new SessionStore(dataRoot);
         _statsStore = new StatsStore(dataRoot);
-        _guardian = new ProcessGuardian();
+        _guardian = guardian;
+        _dialogs = dialogs;
         _guardian.ProcessBlocked += OnProcessBlocked;
 
         _uiTimer = new DispatcherTimer
@@ -63,6 +70,13 @@ public partial class MainWindow : Window
         }
     }
 
+    private static string GetDefaultDataRoot()
+    {
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "LOCK-IN");
+    }
+
     private async void StartMissionButton_Click(object sender, RoutedEventArgs e)
     {
         try
@@ -89,7 +103,7 @@ public partial class MainWindow : Window
                     ? $"{Environment.NewLine}…and {alreadyOpen.Count - 10} more."
                     : string.Empty;
 
-                MessageBox.Show(
+                _dialogs.Show(
                     "Before LOCK-IN starts, close these currently open apps or add them to the allow-list:" +
                     Environment.NewLine + Environment.NewLine +
                     string.Join(Environment.NewLine, shown) +
@@ -107,7 +121,7 @@ public partial class MainWindow : Window
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException)
         {
-            MessageBox.Show(exception.Message, "LOCK-IN", MessageBoxButton.OK, MessageBoxImage.Warning);
+            _dialogs.Show(exception.Message, "LOCK-IN", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -120,6 +134,7 @@ public partial class MainWindow : Window
 
         IdlePanel.Visibility = Visibility.Collapsed;
         ActivePanel.Visibility = Visibility.Visible;
+        WorkspaceTabs.SelectedIndex = 2;
         HeaderStatusText.Text = "LOCKED IN";
 
         ActiveMissionText.Text = session.MissionName;
@@ -146,7 +161,7 @@ public partial class MainWindow : Window
     private void SetSetupEnabled(bool enabled)
     {
         MissionTextBox.IsEnabled = enabled;
-        DurationComboBox.IsEnabled = enabled;
+        DurationMinutesTextBox.IsEnabled = enabled;
         AddAppButton.IsEnabled = enabled;
         RemoveAppButton.IsEnabled = enabled;
         StrictModeCheckBox.IsEnabled = enabled;
@@ -207,7 +222,7 @@ public partial class MainWindow : Window
         ResetToIdle();
         RefreshStats();
 
-        MessageBox.Show(
+        _dialogs.Show(
             $"Mission complete. +{completedSession.PlannedMinutes * 10} XP.",
             "LOCK-IN",
             MessageBoxButton.OK,
@@ -221,7 +236,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var answer = MessageBox.Show(
+        var answer = _dialogs.Show(
             "End this focus session early? It will not award XP.",
             "LOCK-IN",
             MessageBoxButton.YesNo,
@@ -291,14 +306,7 @@ public partial class MainWindow : Window
 
     private int GetSelectedDuration()
     {
-        if (DurationComboBox.SelectedItem is ComboBoxItem item &&
-            item.Tag is string tag &&
-            int.TryParse(tag, out var minutes))
-        {
-            return minutes;
-        }
-
-        return 50;
+        return FocusDuration.ParseMinutes(DurationMinutesTextBox.Text);
     }
 
     private void OnProcessBlocked(BlockedProcessEvent blocked)
@@ -344,7 +352,7 @@ public partial class MainWindow : Window
             StartupCheckBox.IsChecked = StartupRegistrar.IsEnabled();
             _internalStartupToggleChange = false;
 
-            MessageBox.Show(
+            _dialogs.Show(
                 $"Unable to change the Windows startup setting: {exception.Message}",
                 "LOCK-IN",
                 MessageBoxButton.OK,
@@ -363,7 +371,7 @@ public partial class MainWindow : Window
         if (_activeSession.StrictMode && _activeSession.IsActive(DateTimeOffset.UtcNow))
         {
             e.Cancel = true;
-            MessageBox.Show(
+            _dialogs.Show(
                 $"Strict Mode is active until {_activeSession.EndsAtUtc.ToLocalTime():t}. " +
                 "LOCK-IN will release the session automatically.",
                 "LOCK-IN",
@@ -372,7 +380,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var answer = MessageBox.Show(
+        var answer = _dialogs.Show(
             "A focus session is active. End it and close LOCK-IN?",
             "LOCK-IN",
             MessageBoxButton.YesNo,

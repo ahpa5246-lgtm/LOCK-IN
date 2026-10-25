@@ -49,6 +49,11 @@ public sealed class SessionStore
             QuarantineCorruptState();
             return null;
         }
+        catch (IOException)
+        {
+            QuarantineCorruptState();
+            return null;
+        }
     }
 
     public async Task SaveAsync(FocusSession session, CancellationToken cancellationToken = default)
