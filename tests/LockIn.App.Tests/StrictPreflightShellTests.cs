@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using LockIn.App;
@@ -14,7 +15,7 @@ public sealed class StrictPreflightShellTests
 {
     [STATestMethod]
     [Timeout(25_000)]
-    public async Task PreflightLeavesOwnedDisallowedWindowOpenAndDoesNotPersistSession()
+    public void PreflightLeavesOwnedDisallowedWindowOpenAndDoesNotPersistSession()
     {
         Assert.IsTrue(OperatingSystem.IsWindows(), "The real WPF shell acceptance is Windows-only.");
 
@@ -24,7 +25,7 @@ public sealed class StrictPreflightShellTests
         Process? helper = null;
         MainWindow? window = null;
 
-        await File.WriteAllTextAsync(
+        File.WriteAllText(
             scriptPath,
             """
             Add-Type -AssemblyName PresentationFramework
@@ -49,7 +50,7 @@ public sealed class StrictPreflightShellTests
             var deadline = DateTime.UtcNow.AddSeconds(10);
             while (!helper.HasExited && helper.MainWindowHandle == IntPtr.Zero && DateTime.UtcNow < deadline)
             {
-                await Task.Delay(100);
+                Thread.Sleep(100);
                 helper.Refresh();
             }
 
