@@ -78,19 +78,7 @@ public sealed class ProcessGuardian
             {
                 try
                 {
-                    if (!ShouldInspect(process, currentSessionId))
-                    {
-                        continue;
-                    }
-
-                    var processName = FocusSession.NormalizeProcessName(process.ProcessName);
-                    if (ProtectionRules.IsAllowed(session, processName, _ownProcessName))
-                    {
-                        continue;
-                    }
-
-                    process.Kill(entireProcessTree: true);
-                    ProcessBlocked?.Invoke(new BlockedProcessEvent(processName, DateTimeOffset.Now));
+                    TryBlockProcess(process, session, currentSessionId);
                 }
                 catch (Win32Exception)
                 {
@@ -103,6 +91,27 @@ public sealed class ProcessGuardian
                 }
             }
         }
+    }
+
+    internal bool TryBlockProcess(
+        Process process,
+        FocusSession session,
+        int currentSessionId)
+    {
+        if (!ShouldInspect(process, currentSessionId))
+        {
+            return false;
+        }
+
+        var processName = FocusSession.NormalizeProcessName(process.ProcessName);
+        if (ProtectionRules.IsAllowed(session, processName, _ownProcessName))
+        {
+            return false;
+        }
+
+        process.Kill(entireProcessTree: true);
+        ProcessBlocked?.Invoke(new BlockedProcessEvent(processName, DateTimeOffset.Now));
+        return true;
     }
 
     private static bool ShouldInspect(Process process, int currentSessionId)
