@@ -10,14 +10,19 @@ public sealed class ProcessGuardian
 {
     private readonly string _ownProcessName;
     private readonly TimeSpan _scanInterval;
+    private readonly Func<IReadOnlyList<Process>> _processProvider;
 
     public event Action<BlockedProcessEvent>? ProcessBlocked;
 
-    public ProcessGuardian(string? ownProcessName = null, TimeSpan? scanInterval = null)
+    public ProcessGuardian(
+        string? ownProcessName = null,
+        TimeSpan? scanInterval = null,
+        Func<IReadOnlyList<Process>>? processProvider = null)
     {
         _ownProcessName = FocusSession.NormalizeProcessName(
             ownProcessName ?? Process.GetCurrentProcess().ProcessName);
         _scanInterval = scanInterval ?? TimeSpan.FromMilliseconds(650);
+        _processProvider = processProvider ?? (() => Process.GetProcesses());
     }
 
     public IReadOnlyList<string> FindDisallowedInteractiveProcessNames(FocusSession session)
@@ -26,7 +31,7 @@ public sealed class ProcessGuardian
         var currentSessionId = Process.GetCurrentProcess().SessionId;
         var disallowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var process in Process.GetProcesses())
+        foreach (var process in _processProvider())
         {
             using (process)
             {
@@ -72,7 +77,7 @@ public sealed class ProcessGuardian
 
     internal void Scan(FocusSession session, int currentSessionId)
     {
-        foreach (var process in Process.GetProcesses())
+        foreach (var process in _processProvider())
         {
             using (process)
             {
