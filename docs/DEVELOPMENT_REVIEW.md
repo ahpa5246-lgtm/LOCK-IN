@@ -37,3 +37,33 @@ The Senior Skills example visual gate was run and correctly returned BLOCKED_UNV
 Exercise user-visible preflight and active Strict Mode scanning against a disposable Windows application, then verify close resistance and reopen/resume through the real desktop shell. Inspect 1100px and 760px windows, then commission original purposeful illustration. Arabic localization and schedules remain absent.
 
 Rollback: revert this milestone branch before merge. Do not merge or deploy automatically. Future runs must inspect open PRs and continue this branch before creating duplicate work.
+
+
+## 2026-11-01 — initialize the real WPF application in shell acceptance
+
+### Confirmed CI failure
+- The current PR-head workflow [40245664765](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/40245664765) restored and built the solution successfully with 0 warnings and 0 errors.
+- Core tests passed 21/21. The single WPF acceptance test failed while constructing `MainWindow` with `XamlParseException: Cannot find resource named 'BackgroundBrush'`.
+- `src/LockIn.App/App.xaml` defines `BackgroundBrush` in `Application.Resources`. The test harness had created a plain `System.Windows.Application`, which does not load the product's compiled `App.xaml` resource dictionary. This is a test-host initialization defect; the log does not establish a missing production resource.
+- The preceding test-only runs exposed distinct harness issues (missing dialog boundary, test-project imports, and loss of the STA thread). The current failure is the remaining resource-initialization case; do not repeat an equivalent failed setup.
+
+### Bounded repair on the existing PR branch
+The test now creates the actual `LockIn.App.App` on the `[STATestMethod]` STA thread when no application exists, calls its generated `InitializeComponent()`, and asserts that `BackgroundBrush` is present before constructing `MainWindow`. If the test host already owns a different WPF Application, the test fails with an explicit setup message rather than attempting to create a second application.
+
+No production source, process enumeration, dialog behavior, session persistence, or enforcement logic changed.
+
+### Validation state
+- Implementation commit: pending GitHub Actions result at the time of this review update.
+- The prior run is **red**, not a pass. No fourth/fifth attempt is being claimed as successful until the new branch-head run completes.
+- Acceptance remains the real Windows WPF shell test against an owned disposable PowerShell window. The test must prove that pre-flight reports the disallowed process, leaves that process open, keeps the UI in Idle, and does not persist a session.
+- Stop if the same `BackgroundBrush` initialization failure recurs; investigate the compiled WPF resource build/action instead of rerunning unchanged.
+
+### Product and visual comparison recheck
+Reviewed on 2026-11-01:
+- [Cold Turkey Blocker — official features](https://getcoldturkey.com/features/): its released Windows product documents application blocking, block lists, scheduled blocks, and configurable locking. It offers a broader blocker surface than LOCK-IN; that is not a reason to add website blocking or scheduling to this local-first focus milestone.
+- [Freedom — official product page](https://freedom.to/splash): the released product separates device selection, blocklist selection, and session start, and documents Locked Mode. Its Windows help flow uses the system-tray app to manage desktop applications and a dashboard to configure sessions. LOCK-IN's Session setup, Allowed applications, and Focus destinations provide a comparable separation, but do not provide Freedom's cross-device synchronization or recurring schedule.
+- [Microsoft Windows app design guidelines](https://learn.microsoft.com/en-us/windows/apps/design/guidelines-overview): the official Fluent guidance emphasizes predictable navigation, commanding, layout, typography, and usability. The current XAML still applies Comic Sans MS globally and uses a prominent custom mascot/header; these are source-level observations, not a rendered visual comparison. The direction should be reviewed against Windows typography, compact navigation, and task-focused spacing rather than treated as a color-only issue.
+
+This is not a screenshot-to-screenshot visual pass. No current-commit desktop/narrow screenshots or recorded UI task observations are attached to this WPF milestone. The visual gate remains blocked until actual application screenshots at representative window sizes are inspected, keyboard/RTL behavior is exercised, and a design decision is tied to the observed journeys. Existing missing checks remain: real 1100px/760px window interaction, close resistance, restart/resume, keyboard navigation, Arabic localization, and schedule behavior (not currently implemented).
+
+Rollback: revert this test-and-review commit on `codex/focused-desktop-workspaces`; no merge or deployment.

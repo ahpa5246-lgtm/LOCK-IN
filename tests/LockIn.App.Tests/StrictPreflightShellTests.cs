@@ -57,7 +57,19 @@ public sealed class StrictPreflightShellTests
             Assert.IsFalse(helper.HasExited, "The disposable process exited before pre-flight verification.");
             Assert.AreNotEqual(IntPtr.Zero, helper.MainWindowHandle, "The disposable process never created a window.");
 
-            _ = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            var application = Application.Current as LockIn.App.App;
+            if (application is null)
+            {
+                Assert.IsNull(
+                    Application.Current,
+                    "The test host must not create a different WPF Application before LOCK-IN initializes its resources.");
+                application = new LockIn.App.App { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            }
+
+            application.InitializeComponent();
+            Assert.IsTrue(
+                application.Resources.Contains("BackgroundBrush"),
+                "App.xaml resources must be loaded before MainWindow is constructed.");
             var dialogs = new RecordingUserDialog();
             var helperPid = helper.Id;
             var guardian = new ProcessGuardian(
