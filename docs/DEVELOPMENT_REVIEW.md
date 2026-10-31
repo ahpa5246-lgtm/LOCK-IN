@@ -67,3 +67,15 @@ Reviewed on 2026-11-01:
 This is not a screenshot-to-screenshot visual pass. No current-commit desktop/narrow screenshots or recorded UI task observations are attached to this WPF milestone. The visual gate remains blocked until actual application screenshots at representative window sizes are inspected, keyboard/RTL behavior is exercised, and a design decision is tied to the observed journeys. Existing missing checks remain: real 1100px/760px window interaction, close resistance, restart/resume, keyboard navigation, Arabic localization, and schedule behavior (not currently implemented).
 
 Rollback: revert this test-and-review commit on `codex/focused-desktop-workspaces`; no merge or deployment.
+
+
+### Final verification — 2026-11-01
+- Code/test commit: `76dbb71afdf298f918d66292bb11b9b6e219aba2`.
+- GitHub Actions PR run [41249825254](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41249825254) completed successfully.
+- Restore and Release build passed with 0 warnings and 0 errors.
+- Core suite: 21/21 passed, 0 failed, 0 skipped.
+- WPF app-shell suite: 1/1 passed, 0 failed, 0 skipped. The test initialized the actual `LockIn.App.App` resources on the STA thread, then constructed the real `MainWindow` and exercised the disposable-process pre-flight path.
+- Self-contained Windows x64 publish and Inno Setup installer build passed. Artifact [13061275276](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41249825254/artifacts/13061275276) was uploaded (126,495,948 bytes).
+- This closes the resource-initialization failure for the named pre-flight acceptance test only. It does not prove full desktop scanning, close resistance, restart/resume, keyboard navigation, Arabic localization, schedule behavior, or visual quality.
+
+The documentation update below is documentation-only; it does not change the tested application or test harness. Its own branch-head CI must still be checked before the review record is considered current.
