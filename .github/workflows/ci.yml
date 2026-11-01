@@ -19,7 +19,17 @@ jobs:
       - name: Build
         run: dotnet build LOCK-IN.sln -c Release --no-restore
       - name: Test
+        env:
+          LOCKIN_UI_EVIDENCE_DIR: ${{ github.workspace }}/artifacts/ui-evidence
         run: dotnet test LOCK-IN.sln -c Release --no-build --logger "trx;LogFileName=tests.trx"
+      - name: Upload WPF UI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LOCK-IN-ui-evidence-${{ github.sha }}
+          path: artifacts/ui-evidence/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Publish Windows x64
         run: dotnet publish src/LockIn.App/LockIn.App.csproj -c Release -r win-x64 --self-contained true --no-restore -o artifacts/publish
       - name: Install Inno Setup

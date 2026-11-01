@@ -1,0 +1,157 @@
+# LOCK-IN: engineering review, 2026-10-18
+
+## Scope and intent
+Owner requested continued implementation and severe comparison with released products. This is the first bounded repair milestone, not a full completion claim. Local/offline architecture is retained; no new paid service or deployment.
+
+Core journey: Session setup → allowed applications → active focus → progress/settings.
+
+## Decision and implementation
+Replace crowded two-column dashboard with four named destinations using existing working controls. Starting/restoring a session opens Focus automatically. Keep existing process guardian safety behavior and restrictions. No empty scheduling page is invented.
+
+The persistence follow-up covers the existing crash/restart promise rather than adding another screen. A saved Strict session is exercised through the real `SessionStore`, including its normalized application allow-list. If Windows temporarily denies access to `active-session.json`, startup now treats the session as unavailable instead of propagating `IOException` and terminating the app; the store still attempts its existing quarantine path, which safely tolerates the same file lock.
+
+The custom-duration stage replaces fixed presets with direct minute entry while preserving the owner-approved inclusive 3–720 minute boundary. Parsing and validation now live in `LockIn.Core.Services.FocusDuration`; the WPF start flow calls that tested parser instead of duplicating untestable window-local rules.
+
+Alternative: decorate the existing home page while leaving workflows and state bugs unchanged. Rejected because appearance cannot repair lost results or crowded controls. Existing architecture remains intact.
+
+## Reference research
+Official feature/product pages consulted for task hierarchy and separation of primary work from setup/reference. No source, artwork, icon or layout copied:
+https://getcoldturkey.com/features/
+https://freedom.to/features
+https://opalapp.com/
+
+Web-text inspection is not a visual screenshot comparison. These sources are a starting shortlist, not completed visual evidence. Do not mark the comparative design gate passed. A missing or inaccessible visual reference remains an open item.
+
+## Evidence and harsh self-review
+The existing Windows CI already restores, builds, tests, publishes a self-contained Windows x64 application and builds the Inno Setup installer. Run 39078795715 passed all of those steps for the workspace split and produced the 126,380,504-byte `LOCK-IN-windows` artifact with recorded SHA-256 digest `9a4201454b84e5d76a4f10bfb4b2e1a2cabbb3bf3a6e3ccc380211739954f9ac`.
+
+The locked-session regression was isolated in test-only run 39108261432: the solution built with zero warnings/errors, 11 tests passed, and the new test failed at `SessionStore.LoadActive` with `System.IO.IOException` from `File.ReadAllText`. After the bounded fix and Strict-session round-trip test, Windows run 39108399806 built with zero warnings/errors and passed all 13 tests (0 failed, 0 skipped). The same run published the self-contained `win-x64` application, compiled the Inno Setup installer and uploaded the 126,414,611-byte `LOCK-IN-windows` artifact with SHA-256 digest `e6f69525fb44be1892cdec61ef62b2550f9675d164ab5309d93358639b3e7d74`. CI compilation is not actual desktop interaction: process termination, close resistance, keyboard navigation, screenshots and responsive window states remain unverified.
+
+The user-defined duration validation followed a separate RED→GREEN cycle. Test-only run 39182180128 restored dependencies, compiled `LockIn.Core` and `LockIn.App`, then failed the solution build with two expected `CS0103` errors because the new boundary tests referenced the not-yet-created `FocusDuration` parser. GREEN run 39187683419 on code commit `7f7bf36` built Release with 0 warnings and 0 errors, passed 20/20 tests (0 failed, 0 skipped), published the self-contained `win-x64` app, built the Inno Setup installer, and uploaded artifact 12157859604 (`LOCK-IN-windows`, 126,422,852 bytes, SHA-256 `790cb37d65fe7a961237c559c8d56f5460096789eaef4bf4d72fd67d47aafaac`). The parser tests cover accepted 3, 25 and 720 minute values plus empty, non-numeric, 2 and 721 minute rejection. The current evidence proves the validation contract and package build, not real WPF text entry or countdown behavior at the two boundary values. Actual process termination, close resistance, keyboard navigation, 1100px/760px screenshots and comparative visual review remain unresolved. GitHub's Node 20 action-runtime deprecation warning remains a maintenance item rather than a product-test failure.
+
+The disposable-process guardian stage used a targeted real-process harness rather than a mocked kill or an unrestricted system scan. Test-only run 40173174627 failed at compile time with the expected `CS1061` because the new test referenced the not-yet-created internal `TryBlockProcess` seam. GREEN run 40175893878 on code commit `19a3c1d` built Release with 0 warnings and 0 errors, then passed 21/21 tests (0 failed, 0 skipped) on Windows Server 2025. The new test launched an owned PowerShell STA process with a visible WPF window, passed only that process through Strict Mode protection, observed the `ProcessBlocked` event, and proved the exact disposable process exited. The same run published the self-contained `win-x64` application, compiled `LOCK-IN-Setup.exe`, and uploaded artifact 12592290761 (`LOCK-IN-windows`, 126,488,721 bytes, SHA-256 `1cae9db60b4cac95b1f271340082cc6d2add362abd6ee9908373304d3fc7861f`). This verifies real targeted termination without risking unrelated runner processes; it does not verify full desktop scanning, user-visible preflight, close resistance, or restart/resume.
+
+The Senior Skills example visual gate was run and correctly returned BLOCKED_UNVERIFIED_DESIGN; its draft lacks verified asset licenses. That result is framework evidence, not a project-specific visual pass. Actual screenshots, app-commit binding, keyboard/RTL checks, and task observations are required before release readiness.
+
+## Next acceptance boundary
+Exercise user-visible preflight and active Strict Mode scanning against a disposable Windows application, then verify close resistance and reopen/resume through the real desktop shell. Inspect 1100px and 760px windows, then commission original purposeful illustration. Arabic localization and schedules remain absent.
+
+Rollback: revert this milestone branch before merge. Do not merge or deploy automatically. Future runs must inspect open PRs and continue this branch before creating duplicate work.
+
+
+## 2026-11-01 — initialize the real WPF application in shell acceptance
+
+### Confirmed CI failure
+- The current PR-head workflow [40245664765](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/40245664765) restored and built the solution successfully with 0 warnings and 0 errors.
+- Core tests passed 21/21. The single WPF acceptance test failed while constructing `MainWindow` with `XamlParseException: Cannot find resource named 'BackgroundBrush'`.
+- `src/LockIn.App/App.xaml` defines `BackgroundBrush` in `Application.Resources`. The test harness had created a plain `System.Windows.Application`, which does not load the product's compiled `App.xaml` resource dictionary. This is a test-host initialization defect; the log does not establish a missing production resource.
+- The preceding test-only runs exposed distinct harness issues (missing dialog boundary, test-project imports, and loss of the STA thread). The current failure is the remaining resource-initialization case; do not repeat an equivalent failed setup.
+
+### Bounded repair on the existing PR branch
+The test now creates the actual `LockIn.App.App` on the `[STATestMethod]` STA thread when no application exists, calls its generated `InitializeComponent()`, and asserts that `BackgroundBrush` is present before constructing `MainWindow`. If the test host already owns a different WPF Application, the test fails with an explicit setup message rather than attempting to create a second application.
+
+No production source, process enumeration, dialog behavior, session persistence, or enforcement logic changed.
+
+### Validation state
+- Implementation commit: pending GitHub Actions result at the time of this review update.
+- The prior run is **red**, not a pass. No fourth/fifth attempt is being claimed as successful until the new branch-head run completes.
+- Acceptance remains the real Windows WPF shell test against an owned disposable PowerShell window. The test must prove that pre-flight reports the disallowed process, leaves that process open, keeps the UI in Idle, and does not persist a session.
+- Stop if the same `BackgroundBrush` initialization failure recurs; investigate the compiled WPF resource build/action instead of rerunning unchanged.
+
+### Product and visual comparison recheck
+Reviewed on 2026-11-01:
+- [Cold Turkey Blocker — official features](https://getcoldturkey.com/features/): its released Windows product documents application blocking, block lists, scheduled blocks, and configurable locking. It offers a broader blocker surface than LOCK-IN; that is not a reason to add website blocking or scheduling to this local-first focus milestone.
+- [Freedom — official product page](https://freedom.to/splash): the released product separates device selection, blocklist selection, and session start, and documents Locked Mode. Its Windows help flow uses the system-tray app to manage desktop applications and a dashboard to configure sessions. LOCK-IN's Session setup, Allowed applications, and Focus destinations provide a comparable separation, but do not provide Freedom's cross-device synchronization or recurring schedule.
+- [Microsoft Windows app design guidelines](https://learn.microsoft.com/en-us/windows/apps/design/guidelines-overview): the official Fluent guidance emphasizes predictable navigation, commanding, layout, typography, and usability. The current XAML still applies Comic Sans MS globally and uses a prominent custom mascot/header; these are source-level observations, not a rendered visual comparison. The direction should be reviewed against Windows typography, compact navigation, and task-focused spacing rather than treated as a color-only issue.
+
+This is not a screenshot-to-screenshot visual pass. No current-commit desktop/narrow screenshots or recorded UI task observations are attached to this WPF milestone. The visual gate remains blocked until actual application screenshots at representative window sizes are inspected, keyboard/RTL behavior is exercised, and a design decision is tied to the observed journeys. Existing missing checks remain: real 1100px/760px window interaction, close resistance, restart/resume, keyboard navigation, Arabic localization, and schedule behavior (not currently implemented).
+
+Rollback: revert this test-and-review commit on `codex/focused-desktop-workspaces`; no merge or deployment.
+
+
+### Final verification — 2026-11-01
+- Code/test commit: `76dbb71afdf298f918d66292bb11b9b6e219aba2`.
+- GitHub Actions PR run [41249825254](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41249825254) completed successfully.
+- Restore and Release build passed with 0 warnings and 0 errors.
+- Core suite: 21/21 passed, 0 failed, 0 skipped.
+- WPF app-shell suite: 1/1 passed, 0 failed, 0 skipped. The test initialized the actual `LockIn.App.App` resources on the STA thread, then constructed the real `MainWindow` and exercised the disposable-process pre-flight path.
+- Self-contained Windows x64 publish and Inno Setup installer build passed. Artifact [13061275276](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41249825254/artifacts/13061275276) was uploaded (126,495,948 bytes).
+- This closes the resource-initialization failure for the named pre-flight acceptance test only. It does not prove full desktop scanning, close resistance, restart/resume, keyboard navigation, Arabic localization, schedule behavior, or visual quality.
+
+The documentation update below is documentation-only; it does not change the tested application or test harness. Its own branch-head CI must still be checked before the review record is considered current.
+
+
+## 2026-11-01 — keep the active Focus workspace usable in short windows
+
+### Defect observed from the real WPF artifact
+- The previous branch-head run [41257065221](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41257065221) uploaded UI artifact [13063917064](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41257065221/artifacts/13063917064). I inspected both the 1044×760 desktop capture and the 760×680 narrow-window capture.
+- At 760×680, the countdown was clipped vertically: the active content used a vertically centered StackPanel inside a fixed star row, but the timer, progress summary and blocked-app list exceeded the remaining height. The earlier test captured the frame but did not assert the countdown's visible bounds or that the operator could reach the log.
+- This was confirmed from the screenshot, not inferred from a style change or a successful window launch.
+
+### Bounded implementation
+- Code/test commit: `955dd936a721576764b7f9b601a9cc9bbc096526`.
+- Replaced the fixed three-row active-session layout with a vertical ScrollViewer. The mission/mode header, countdown, progress, session summary, recently-blocked list and non-strict end-session action remain in the same Focus workspace.
+- The initial scroll position stays at the top so the timer is visible. The blocked-app list remains reachable by scrolling. No process enumeration, guardian enforcement, session persistence, expiry or Strict Mode behavior changed.
+
+### Acceptance and CI
+- GitHub Actions run [41260872795](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41260872795) passed on the implementation commit.
+- Restore and Release build: 0 warnings, 0 errors.
+- Core tests: 21/21 passed. WPF app tests: 2/2 passed, including the new real-window narrow acceptance.
+- The new test sets the real WPF window to 760×680, asserts the countdown rectangle is fully inside the initial ScrollViewer viewport, scrolls to the end and asserts the recently-blocked ListBox is fully visible, then returns to the top before capturing the screenshot.
+- Current UI artifact [13064594779](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41260872795/artifacts/13064594779) (97,375 bytes) contains desktop 1100×760 and narrow 760×680 screenshots. Both were inspected; the narrow timer is now fully visible and the scroll bar indicates the remaining content is reachable.
+- Self-contained Windows x64 publish and Inno Setup installer succeeded; artifact [13064739494](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41260872795/artifacts/13064739494) is 126,453,093 bytes.
+
+### Comparative review — official product and platform references
+- [Cold Turkey Blocker features](https://getcoldturkey.com/features/) — the released product separates app blocking, schedules, lock modes and statistics. LOCK-IN's current scope remains a local Windows focus session and allow-list; this repair improves access to the active session rather than implying feature parity.
+- [Freedom](https://freedom.to/splash) — the released product presents a clear sequence of device selection, blocklist selection and session length/frequency. LOCK-IN retains its separate Session setup, Allowed applications and Focus destinations; it does not claim Freedom's cross-device sync or scheduling.
+- [Microsoft Windows design guidelines](https://learn.microsoft.com/en-us/windows/apps/design/guidelines-overview) — the official guidance identifies layout, navigation, typography and usability as separate design foundations. The current app still uses Comic Sans MS globally and a large mascot/header; those are unresolved design decisions, not repaired by this scroll fix.
+- Decision: keep the existing task separation and make the active task surface scroll safely at short window heights. No palette-only redesign, competitor asset or layout was copied.
+
+### Remaining gaps
+- This closes only the 760×680 timer-clipping defect and proves that the blocked-app list is reachable by scrolling. It does not establish full keyboard navigation, Arabic/RTL localization, screen-reader behavior, non-strict end-session interaction, complete close-resistance/restart/resume journeys, or all window sizes.
+- The full competitive visual-quality gate remains **BLOCKED_UNVERIFIED_DESIGN**. Actual screenshots were inspected, but this run did not execute `scripts/visual_quality_gate.py` because the local environment cannot obtain a repository checkout; the prior gate record also lacks verified font/illustration licensing. Do not infer a visual pass from the two screenshots or the passing tests.
+- No merge or deployment.
+
+
+## 2026-11-01 — non-strict early-end journey verified
+
+### Bounded acceptance
+- Added a real WPF shell test to the existing Draft PR #2 branch; no new branch or PR was created.
+- The test restores a real persisted non-strict session, opens the actual WPF window, and verifies that the early-end action is visible and enabled.
+- Choosing **No** in the confirmation boundary leaves the Focus workspace active and preserves `active-session.json`.
+- Choosing **Yes** returns the UI to Idle, clears the persisted active-session record, and awards neither a completed-session count nor XP.
+- The test scrolls the actual Focus ScrollViewer to the bottom, checks the End session early button's bounds against the measured viewport, focuses the button, captures the scrolled UI, and returns to the top before exercising both confirmation outcomes.
+
+### Current-head verification
+- Test commit: `905fcb4b7b0f386af0ed8fb9fb09493e6c40fcb6`.
+- GitHub Actions run [41322141992](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41322141992) passed on the exact PR #2 head.
+- Restore and Release build passed with 0 warnings and 0 errors.
+- Core suite: 21/21 passed. WPF app-shell suite: 3/3 passed, including strict close/expiry, safe pre-flight, and the new non-strict early-end journey.
+- Self-contained Windows x64 publish and Inno Setup installer build passed. Windows artifact [13088859618](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41322141992/artifacts/13088859618) is 126,508,514 bytes.
+- UI evidence artifact [13088714836](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41322141992/artifacts/13088714836) is 192,054 bytes. I downloaded and inspected the new `non-strict-session-end-action-1100x760.png` capture: the requested WPF window was 1100×760 and the captured client image is 1044×760. The action is visible only after scrolling the active Focus workspace, and the captured button has keyboard focus. The top-of-session and 760×680 strict-mode captures remain in the same artifact.
+
+### Product/visual decision and remaining gaps
+- The comparison remains [Cold Turkey Blocker](https://getcoldturkey.com/features/) and [Freedom](https://freedom.to/splash) for released focus/blocking workflows, with [Microsoft Windows design guidelines](https://learn.microsoft.com/en-us/windows/apps/design/guidelines-overview) as the official platform reference. The test verifies the non-strict exit task and its scroll/focus reachability; it does not claim feature parity or a visual pass.
+- This closes the previously untested non-strict confirmation path: cancel preserves the session; confirm ends without reward. It does not prove full Tab/arrow traversal, screen-reader output, Arabic/RTL localization, close-resistance under OS shutdown, or restart/resume across an actual process restart.
+- The UI still uses Comic Sans MS globally and a large mascot/header. The full competitive visual-quality gate remains **BLOCKED_UNVERIFIED_DESIGN**; this functional acceptance does not resolve the design direction or font/illustration licensing record.
+- No production source changed in this milestone. Keep PR #2 Draft; no merge or deployment.
+
+Rollback: revert the non-strict shell acceptance test and this review entry on the existing branch.
+
+## 2026-11-02 — Focus-entry scroll restoration remains blocked
+
+### Observed failure and bounded attempts
+- Baseline run [41349667698](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41349667698) failed the 720-minute real WPF journey at 760×680. The countdown geometry was outside the initial ActiveContentScrollViewer viewport.
+- Test-harness commit 'f58ce124356a6d4014006514555d416666a6cac9' made the test wait for WPF layout and focused the real Start Mission button. CI [41350511086](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41350511086) exposed a declaration-order compile error (CS0841); no test result was claimed.
+- Follow-up commit '433d1c82c58d46debaf1b086a4288d73efa544de' corrected the declaration order. CI [41350741463](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41350741463) built successfully and passed 21/21 Core tests, but the real WPF test measured VerticalOffset=164.12; the countdown was still below the initial viewport. Artifact [13101735234](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41350741463/artifacts/13101735234) confirms the mission header and countdown were scrolled out of view after Start Mission.
+- Production/test commit '4fbb4d704ff194094e7a60c300339453ff3ae797' moves keyboard focus to the selected Focus tab header after WPF layout and resets the active scroll region to the top. The 760×680 screenshot in artifact [13101203375](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41351070770/artifacts/13101203375) now shows the 11:59:59 countdown, mission and mode at the top of the Focus workspace.
+- The same CI run [41351070770](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41351070770) built successfully with 0 warnings/errors and passed 21/21 Core tests, but the WPF suite passed only 2/4. RestoredStrictSessionShowsFocusWorkspaceAndRejectsCloseUntilExpiry and NonStrictSessionRequiresConfirmationAndEndsWithoutReward failed because their later ScrollToEnd journeys no longer reached the end of the Focus workspace. The deferred focus/scroll reset appears to race with subsequent operator scrolling; dispatcher ordering has not been isolated sufficiently to claim a safe fix.
+
+### Stop condition and next safe action
+- The bounded retry allowance for this Focus-entry task is exhausted. Do not add another equivalent implementation attempt in this cycle.
+- Preserve the current Draft PR and the observed improvement to the 720-minute start screenshot, but treat the branch as BLOCKED — CI failing. The next review must reconcile initial keyboard focus with later user-initiated scrolling, and prove both restored Strict Mode and non-strict early-end journeys before changing the status.
+- No merge, deployment, installer publication or release approval.
+
+### Comparative visual status
+- Direct released-product references remain [Cold Turkey Blocker](https://getcoldturkey.com/features/) and [Freedom](https://freedom.to/splash); the official platform reference remains [Microsoft Windows design guidelines](https://learn.microsoft.com/en-us/windows/apps/design/guidelines-overview).
+- The new screenshot proves the countdown-entry geometry only. It does not close the full visual gate: Comic Sans MS remains global, the mascot/header still dominates the workspace, and keyboard traversal, screen-reader output, Arabic/RTL, restart/resume and broader window-size coverage remain unverified.
