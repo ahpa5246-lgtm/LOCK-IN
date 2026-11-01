@@ -344,6 +344,7 @@ public sealed class StrictSessionShellTests
                 Assert.IsTrue(start.Focus(), "The real Start Mission button must receive focus before activation.");
 
                 var activePanel = (Grid)window.FindName("ActivePanel");
+                var workspaceTabs = (TabControl)window.FindName("WorkspaceTabs");
                 var previousSynchronizationContext = SynchronizationContext.Current;
                 SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(window.Dispatcher));
                 try
@@ -363,7 +364,6 @@ public sealed class StrictSessionShellTests
                 }
 
                 var idlePanel = (Grid)window.FindName("IdlePanel");
-                var workspaceTabs = (TabControl)window.FindName("WorkspaceTabs");
                 var storedSession = new SessionStore(root).LoadActive();
                 Assert.IsNotNull(storedSession, "The real WPF action must persist the active session.");
                 Assert.AreEqual(testCase.Minutes, storedSession!.PlannedMinutes);
