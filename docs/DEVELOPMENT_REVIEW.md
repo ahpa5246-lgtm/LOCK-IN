@@ -79,3 +79,35 @@ Rollback: revert this test-and-review commit on `codex/focused-desktop-workspace
 - This closes the resource-initialization failure for the named pre-flight acceptance test only. It does not prove full desktop scanning, close resistance, restart/resume, keyboard navigation, Arabic localization, schedule behavior, or visual quality.
 
 The documentation update below is documentation-only; it does not change the tested application or test harness. Its own branch-head CI must still be checked before the review record is considered current.
+
+
+## 2026-11-01 — keep the active Focus workspace usable in short windows
+
+### Defect observed from the real WPF artifact
+- The previous branch-head run [41257065221](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41257065221) uploaded UI artifact [13063917064](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41257065221/artifacts/13063917064). I inspected both the 1044×760 desktop capture and the 760×680 narrow-window capture.
+- At 760×680, the countdown was clipped vertically: the active content used a vertically centered StackPanel inside a fixed star row, but the timer, progress summary and blocked-app list exceeded the remaining height. The earlier test captured the frame but did not assert the countdown's visible bounds or that the operator could reach the log.
+- This was confirmed from the screenshot, not inferred from a style change or a successful window launch.
+
+### Bounded implementation
+- Code/test commit: `955dd936a721576764b7f9b601a9cc9bbc096526`.
+- Replaced the fixed three-row active-session layout with a vertical ScrollViewer. The mission/mode header, countdown, progress, session summary, recently-blocked list and non-strict end-session action remain in the same Focus workspace.
+- The initial scroll position stays at the top so the timer is visible. The blocked-app list remains reachable by scrolling. No process enumeration, guardian enforcement, session persistence, expiry or Strict Mode behavior changed.
+
+### Acceptance and CI
+- GitHub Actions run [41260872795](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41260872795) passed on the implementation commit.
+- Restore and Release build: 0 warnings, 0 errors.
+- Core tests: 21/21 passed. WPF app tests: 2/2 passed, including the new real-window narrow acceptance.
+- The new test sets the real WPF window to 760×680, asserts the countdown rectangle is fully inside the initial ScrollViewer viewport, scrolls to the end and asserts the recently-blocked ListBox is fully visible, then returns to the top before capturing the screenshot.
+- Current UI artifact [13064594779](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41260872795/artifacts/13064594779) (97,375 bytes) contains desktop 1100×760 and narrow 760×680 screenshots. Both were inspected; the narrow timer is now fully visible and the scroll bar indicates the remaining content is reachable.
+- Self-contained Windows x64 publish and Inno Setup installer succeeded; artifact [13064739494](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41260872795/artifacts/13064739494) is 126,453,093 bytes.
+
+### Comparative review — official product and platform references
+- [Cold Turkey Blocker features](https://getcoldturkey.com/features/) — the released product separates app blocking, schedules, lock modes and statistics. LOCK-IN's current scope remains a local Windows focus session and allow-list; this repair improves access to the active session rather than implying feature parity.
+- [Freedom](https://freedom.to/splash) — the released product presents a clear sequence of device selection, blocklist selection and session length/frequency. LOCK-IN retains its separate Session setup, Allowed applications and Focus destinations; it does not claim Freedom's cross-device sync or scheduling.
+- [Microsoft Windows design guidelines](https://learn.microsoft.com/en-us/windows/apps/design/guidelines-overview) — the official guidance identifies layout, navigation, typography and usability as separate design foundations. The current app still uses Comic Sans MS globally and a large mascot/header; those are unresolved design decisions, not repaired by this scroll fix.
+- Decision: keep the existing task separation and make the active task surface scroll safely at short window heights. No palette-only redesign, competitor asset or layout was copied.
+
+### Remaining gaps
+- This closes only the 760×680 timer-clipping defect and proves that the blocked-app list is reachable by scrolling. It does not establish full keyboard navigation, Arabic/RTL localization, screen-reader behavior, non-strict end-session interaction, complete close-resistance/restart/resume journeys, or all window sizes.
+- The full competitive visual-quality gate remains **BLOCKED_UNVERIFIED_DESIGN**. Actual screenshots were inspected, but this run did not execute `scripts/visual_quality_gate.py` because the local environment cannot obtain a repository checkout; the prior gate record also lacks verified font/illustration licensing. Do not infer a visual pass from the two screenshots or the passing tests.
+- No merge or deployment.
