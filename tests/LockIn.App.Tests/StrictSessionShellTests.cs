@@ -345,6 +345,8 @@ public sealed class StrictSessionShellTests
 
                 var activePanel = (Grid)window.FindName("ActivePanel");
                 var workspaceTabs = (TabControl)window.FindName("WorkspaceTabs");
+                var focusTab = (TabItem)workspaceTabs.Items[2];
+                var scrollViewer = (ScrollViewer)window.FindName("ActiveContentScrollViewer");
                 var previousSynchronizationContext = SynchronizationContext.Current;
                 SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(window.Dispatcher));
                 try
@@ -353,7 +355,8 @@ public sealed class StrictSessionShellTests
                     Assert.IsTrue(
                         PumpDispatcherUntil(() =>
                             activePanel.Visibility == Visibility.Visible &&
-                            workspaceTabs.SelectedIndex == 2,
+                            workspaceTabs.SelectedIndex == 2 &&
+                            focusTab.IsKeyboardFocusWithin,
                             TimeSpan.FromSeconds(5)),
                         $"The WPF Start Mission action did not create the {testCase.Minutes}-minute session and select Focus. " +
                         $"Dialogs: {string.Join(" | ", dialogs.Calls.Select(call => call.Message))}");
@@ -395,8 +398,8 @@ public sealed class StrictSessionShellTests
 
                 if (testCase.Minutes == 720)
                 {
-                    var scrollViewer = (ScrollViewer)window.FindName("ActiveContentScrollViewer");
                     scrollViewer.UpdateLayout();
+                    Assert.IsTrue(focusTab.IsKeyboardFocusWithin, "Keyboard focus should remain on the visible Focus tab header when the session opens.");
                     Assert.IsTrue(
                         scrollViewer.ViewportHeight > 0 && countdown.IsVisible && countdown.ActualHeight > 0,
                         "The selected Focus workspace and its countdown must finish layout before geometry is measured.");

@@ -135,6 +135,18 @@ public partial class MainWindow : Window
         IdlePanel.Visibility = Visibility.Collapsed;
         ActivePanel.Visibility = Visibility.Visible;
         WorkspaceTabs.SelectedIndex = 2;
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+        {
+            // The only focusable action in this workspace is at the bottom of the
+            // scroll region. Keep keyboard focus on the selected tab header so WPF
+            // does not scroll the countdown out of view while restoring focus.
+            if (WorkspaceTabs.SelectedItem is TabItem activeTab)
+            {
+                activeTab.Focus();
+            }
+
+            ActiveContentScrollViewer.ScrollToTop();
+        }));
         HeaderStatusText.Text = "LOCKED IN";
 
         ActiveMissionText.Text = session.MissionName;
