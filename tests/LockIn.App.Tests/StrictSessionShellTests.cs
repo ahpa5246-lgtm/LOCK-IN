@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Globalization;
+using System.Threading;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -338,12 +339,24 @@ public sealed class StrictSessionShellTests
                 duration.SelectAll();
                 duration.Text = testCase.Text;
 
-                start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Assert.IsTrue(start.IsEnabled, "The real Start Mission button must be enabled in Session setup.");
+                Assert.IsTrue(start.IsLoaded, "The real Start Mission button must be loaded before invoking it.");
 
                 var activePanel = (Grid)window.FindName("ActivePanel");
-                Assert.IsTrue(
-                    PumpDispatcherUntil(() => activePanel.Visibility == Visibility.Visible, TimeSpan.FromSeconds(5)),
-                    $"The WPF Start Mission action did not create the {testCase.Minutes}-minute session.");
+                var previousSynchronizationContext = SynchronizationContext.Current;
+                SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(window.Dispatcher));
+                try
+                {
+                    start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, start));
+                    Assert.IsTrue(
+                        PumpDispatcherUntil(() => activePanel.Visibility == Visibility.Visible, TimeSpan.FromSeconds(5)),
+                        $"The WPF Start Mission action did not create the {testCase.Minutes}-minute session. " +
+                        $"Dialogs: {string.Join(" | ", dialogs.Calls.Select(call => call.Message))}");
+                }
+                finally
+                {
+                    SynchronizationContext.SetSynchronizationContext(previousSynchronizationContext);
+                }
 
                 var idlePanel = (Grid)window.FindName("IdlePanel");
                 var workspaceTabs = (TabControl)window.FindName("WorkspaceTabs");
@@ -354,9 +367,12 @@ public sealed class StrictSessionShellTests
                 Assert.AreEqual(Visibility.Collapsed, idlePanel.Visibility);
 
                 var countdown = (TextBlock)window.FindName("CountdownText");
+                var countdownFormat = countdown.Text.Count(character => character == ':') == 2
+                    ? @"hh\\:mm\\:ss"
+                    : @"mm\\:ss";
                 Assert.IsTrue(
-                    TimeSpan.TryParse(countdown.Text, CultureInfo.InvariantCulture, out var remaining),
-                    $"The real countdown should be parseable; actual text was '{countdown.Text}'.");
+                    TimeSpan.TryParseExact(countdown.Text, countdownFormat, CultureInfo.InvariantCulture, TimeSpanStyles.None, out var remaining),
+                    $"The real countdown should be parseable; actual text was '{countdown.Text}' using '{countdownFormat}'.");
                 Assert.IsTrue(
                     remaining.TotalSeconds > testCase.Minutes * 60 - 5 &&
                     remaining.TotalSeconds <= testCase.Minutes * 60,
