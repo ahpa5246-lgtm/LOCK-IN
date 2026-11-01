@@ -341,6 +341,7 @@ public sealed class StrictSessionShellTests
 
                 Assert.IsTrue(start.IsEnabled, "The real Start Mission button must be enabled in Session setup.");
                 Assert.IsTrue(start.IsLoaded, "The real Start Mission button must be loaded before invoking it.");
+                Assert.IsTrue(start.Focus(), "The real Start Mission button must receive focus before activation.");
 
                 var activePanel = (Grid)window.FindName("ActivePanel");
                 var previousSynchronizationContext = SynchronizationContext.Current;
@@ -349,8 +350,11 @@ public sealed class StrictSessionShellTests
                 {
                     start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, start));
                     Assert.IsTrue(
-                        PumpDispatcherUntil(() => activePanel.Visibility == Visibility.Visible, TimeSpan.FromSeconds(5)),
-                        $"The WPF Start Mission action did not create the {testCase.Minutes}-minute session. " +
+                        PumpDispatcherUntil(() =>
+                            activePanel.Visibility == Visibility.Visible &&
+                            workspaceTabs.SelectedIndex == 2,
+                            TimeSpan.FromSeconds(5)),
+                        $"The WPF Start Mission action did not create the {testCase.Minutes}-minute session and select Focus. " +
                         $"Dialogs: {string.Join(" | ", dialogs.Calls.Select(call => call.Message))}");
                 }
                 finally
@@ -378,23 +382,32 @@ public sealed class StrictSessionShellTests
                     remaining.TotalSeconds <= testCase.Minutes * 60,
                     $"The countdown should start near {testCase.Minutes} minutes; actual value was {remaining}.");
 
-                if (testCase.Minutes == 720)
-                {
-                    var scrollViewer = (ScrollViewer)window.FindName("ActiveContentScrollViewer");
-                    var countdownBounds = countdown.TransformToAncestor(scrollViewer).TransformBounds(new Rect(countdown.RenderSize));
-                    Assert.IsTrue(scrollViewer.ViewportHeight > 0, "The narrow Focus workspace must have a measured viewport.");
-                    Assert.IsTrue(
-                        countdownBounds.Top >= -1 && countdownBounds.Bottom <= scrollViewer.ViewportHeight + 1,
-                        $"The 12-hour countdown must remain visible in the 760×680 window; bounds={countdownBounds}, viewport={scrollViewer.ViewportHeight}.");
-                }
-
                 var evidenceDirectory = Environment.GetEnvironmentVariable("LOCKIN_UI_EVIDENCE_DIR");
                 if (string.IsNullOrWhiteSpace(evidenceDirectory))
                 {
                     evidenceDirectory = Path.Combine(root, "ui-evidence");
                 }
 
+                // The tab switch is asynchronous with respect to WPF measure/arrange.
+                // Capture after a real layout pass so failed geometry assertions retain useful evidence.
+                window.UpdateLayout();
                 CaptureClientArea(window, Path.Combine(evidenceDirectory, testCase.Evidence));
+
+                if (testCase.Minutes == 720)
+                {
+                    var scrollViewer = (ScrollViewer)window.FindName("ActiveContentScrollViewer");
+                    scrollViewer.UpdateLayout();
+                    Assert.IsTrue(
+                        scrollViewer.ViewportHeight > 0 && countdown.IsVisible && countdown.ActualHeight > 0,
+                        "The selected Focus workspace and its countdown must finish layout before geometry is measured.");
+                    Assert.IsTrue(
+                        scrollViewer.VerticalOffset <= 1,
+                        $"Starting a new session must leave the countdown at the top of the Focus workspace; offset={scrollViewer.VerticalOffset}.");
+                    var countdownBounds = countdown.TransformToAncestor(scrollViewer).TransformBounds(new Rect(countdown.RenderSize));
+                    Assert.IsTrue(
+                        countdownBounds.Top >= -1 && countdownBounds.Bottom <= scrollViewer.ViewportHeight + 1,
+                        $"The 12-hour countdown must remain visible in the 760×680 window; bounds={countdownBounds}, viewport={scrollViewer.ViewportHeight}.");
+                }
 
                 var endSession = (Button)window.FindName("EndSessionButton");
                 Assert.AreEqual(Visibility.Visible, endSession.Visibility, "A non-strict boundary test must expose the real early-end action.");
