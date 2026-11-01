@@ -224,6 +224,23 @@ public sealed class StrictSessionShellTests
             Directory.CreateDirectory(evidenceDirectory);
             CaptureClientArea(window, Path.Combine(evidenceDirectory, "non-strict-session-1100x760.png"));
 
+            var focusScrollViewer = (ScrollViewer)window.FindName("ActiveContentScrollViewer");
+            Assert.IsTrue(focusScrollViewer.ScrollableHeight > 0, "The non-strict action must remain reachable in the scrollable Focus workspace.");
+            focusScrollViewer.ScrollToEnd();
+            Assert.IsTrue(
+                PumpDispatcherUntil(
+                    () => focusScrollViewer.VerticalOffset >= focusScrollViewer.ScrollableHeight - 1,
+                    TimeSpan.FromSeconds(2)),
+                "The operator must be able to scroll to the non-strict end-session action.");
+            var endSessionBounds = endSession.TransformToAncestor(focusScrollViewer).TransformBounds(new Rect(endSession.RenderSize));
+            Assert.IsTrue(
+                endSessionBounds.Top >= -1 && endSessionBounds.Bottom <= focusScrollViewer.ViewportHeight + 1,
+                $"The end-session action must be fully visible after scrolling; bounds={endSessionBounds}, viewport={focusScrollViewer.ViewportHeight}.");
+            Assert.IsTrue(endSession.Focus(), "The visible end-session action must accept keyboard focus.");
+            CaptureClientArea(window, Path.Combine(evidenceDirectory, "non-strict-session-end-action-1100x760.png"));
+            focusScrollViewer.ScrollToTop();
+            Assert.IsTrue(PumpDispatcherUntil(() => focusScrollViewer.VerticalOffset <= 1, TimeSpan.FromSeconds(2)));
+
             endSession.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
             Assert.AreEqual(1, dialogs.Calls.Count);
