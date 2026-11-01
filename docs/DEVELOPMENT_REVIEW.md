@@ -111,3 +111,29 @@ The documentation update below is documentation-only; it does not change the tes
 - This closes only the 760×680 timer-clipping defect and proves that the blocked-app list is reachable by scrolling. It does not establish full keyboard navigation, Arabic/RTL localization, screen-reader behavior, non-strict end-session interaction, complete close-resistance/restart/resume journeys, or all window sizes.
 - The full competitive visual-quality gate remains **BLOCKED_UNVERIFIED_DESIGN**. Actual screenshots were inspected, but this run did not execute `scripts/visual_quality_gate.py` because the local environment cannot obtain a repository checkout; the prior gate record also lacks verified font/illustration licensing. Do not infer a visual pass from the two screenshots or the passing tests.
 - No merge or deployment.
+
+
+## 2026-11-01 — non-strict early-end journey verified
+
+### Bounded acceptance
+- Added a real WPF shell test to the existing Draft PR #2 branch; no new branch or PR was created.
+- The test restores a real persisted non-strict session, opens the actual WPF window, and verifies that the early-end action is visible and enabled.
+- Choosing **No** in the confirmation boundary leaves the Focus workspace active and preserves `active-session.json`.
+- Choosing **Yes** returns the UI to Idle, clears the persisted active-session record, and awards neither a completed-session count nor XP.
+- The test scrolls the actual Focus ScrollViewer to the bottom, checks the End session early button's bounds against the measured viewport, focuses the button, captures the scrolled UI, and returns to the top before exercising both confirmation outcomes.
+
+### Current-head verification
+- Test commit: `905fcb4b7b0f386af0ed8fb9fb09493e6c40fcb6`.
+- GitHub Actions run [41322141992](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41322141992) passed on the exact PR #2 head.
+- Restore and Release build passed with 0 warnings and 0 errors.
+- Core suite: 21/21 passed. WPF app-shell suite: 3/3 passed, including strict close/expiry, safe pre-flight, and the new non-strict early-end journey.
+- Self-contained Windows x64 publish and Inno Setup installer build passed. Windows artifact [13088859618](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41322141992/artifacts/13088859618) is 126,508,514 bytes.
+- UI evidence artifact [13088714836](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41322141992/artifacts/13088714836) is 192,054 bytes. I downloaded and inspected the new `non-strict-session-end-action-1100x760.png` capture: the requested WPF window was 1100×760 and the captured client image is 1044×760. The action is visible only after scrolling the active Focus workspace, and the captured button has keyboard focus. The top-of-session and 760×680 strict-mode captures remain in the same artifact.
+
+### Product/visual decision and remaining gaps
+- The comparison remains [Cold Turkey Blocker](https://getcoldturkey.com/features/) and [Freedom](https://freedom.to/splash) for released focus/blocking workflows, with [Microsoft Windows design guidelines](https://learn.microsoft.com/en-us/windows/apps/design/guidelines-overview) as the official platform reference. The test verifies the non-strict exit task and its scroll/focus reachability; it does not claim feature parity or a visual pass.
+- This closes the previously untested non-strict confirmation path: cancel preserves the session; confirm ends without reward. It does not prove full Tab/arrow traversal, screen-reader output, Arabic/RTL localization, close-resistance under OS shutdown, or restart/resume across an actual process restart.
+- The UI still uses Comic Sans MS globally and a large mascot/header. The full competitive visual-quality gate remains **BLOCKED_UNVERIFIED_DESIGN**; this functional acceptance does not resolve the design direction or font/illustration licensing record.
+- No production source changed in this milestone. Keep PR #2 Draft; no merge or deployment.
+
+Rollback: revert the non-strict shell acceptance test and this review entry on the existing branch.
