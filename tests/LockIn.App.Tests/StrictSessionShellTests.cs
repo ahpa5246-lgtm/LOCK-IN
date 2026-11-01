@@ -85,6 +85,33 @@ public sealed class StrictSessionShellTests
             window.Width = 760;
             window.Height = 680;
             window.UpdateLayout();
+
+            var focusScrollViewer = (ScrollViewer)window.FindName("ActiveContentScrollViewer");
+            var countdown = (System.Windows.Controls.TextBlock)window.FindName("CountdownText");
+            Assert.IsTrue(focusScrollViewer.ViewportHeight > 0, "The narrow Focus workspace must have a measured scroll viewport.");
+            Assert.IsTrue(focusScrollViewer.ScrollableHeight > 0, "The short window must scroll the active workspace instead of clipping its contents.");
+            var countdownBounds = countdown.TransformToAncestor(focusScrollViewer).TransformBounds(new Rect(countdown.RenderSize));
+            Assert.IsTrue(
+                countdownBounds.Top >= -1 && countdownBounds.Bottom <= focusScrollViewer.ViewportHeight + 1,
+                $"The countdown must be fully visible before scrolling; bounds={countdownBounds}, viewport={focusScrollViewer.ViewportHeight}.");
+
+            focusScrollViewer.ScrollToEnd();
+            Assert.IsTrue(
+                PumpDispatcherUntil(
+                    () => focusScrollViewer.VerticalOffset >= focusScrollViewer.ScrollableHeight - 1,
+                    TimeSpan.FromSeconds(2)),
+                "The operator must be able to reach the end of the active Focus workspace.");
+            var blockedLog = (ListBox)window.FindName("BlockedLogList");
+            var blockedLogBounds = blockedLog.TransformToAncestor(focusScrollViewer).TransformBounds(new Rect(blockedLog.RenderSize));
+            Assert.IsTrue(
+                blockedLogBounds.Top >= -1 && blockedLogBounds.Bottom <= focusScrollViewer.ViewportHeight + 1,
+                $"The recently blocked log must be reachable after scrolling; bounds={blockedLogBounds}, viewport={focusScrollViewer.ViewportHeight}.");
+
+            focusScrollViewer.ScrollToTop();
+            Assert.IsTrue(
+                PumpDispatcherUntil(() => focusScrollViewer.VerticalOffset <= 1, TimeSpan.FromSeconds(2)),
+                "The Focus workspace must return to the countdown at the top.");
+            window.UpdateLayout();
             CaptureClientArea(window, Path.Combine(evidenceDirectory, "strict-session-narrow-760x680.png"));
 
             window.Close();

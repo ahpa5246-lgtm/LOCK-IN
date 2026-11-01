@@ -86,24 +86,23 @@
                             </StackPanel>
                         </Grid>
                         <Grid x:Name="ActivePanel" Visibility="Collapsed">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <StackPanel>
-                                <TextBlock x:Name="ActiveMissionText" Text="Deep work" FontSize="25" FontWeight="SemiBold" />
-                                <TextBlock x:Name="ActiveModeText" Text="STRICT MODE" Foreground="{StaticResource AccentBrush}" Margin="0,6,0,0" />
-                            </StackPanel>
-                            <StackPanel Grid.Row="1" VerticalAlignment="Center">
-                                <TextBlock x:Name="CountdownText" Text="00:50:00" FontSize="58" FontWeight="Black" HorizontalAlignment="Center" />
-                                <TextBlock Text="SESSION REMAINING" Foreground="{StaticResource MutedBrush}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,18,0,7" />
-                                <ProgressBar x:Name="BossHealthBar" Height="12" Minimum="0" Maximum="100" Value="100" />
-                                <TextBlock x:Name="SessionSummaryText" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" Margin="0,10,0,22" />
-                                <TextBlock Text="Recently blocked" Foreground="{StaticResource MutedBrush}" FontWeight="Bold" Margin="0,0,0,6" />
-                                <ListBox x:Name="BlockedLogList" Height="125" />
-                            </StackPanel>
-                            <Button Grid.Row="2" x:Name="EndSessionButton" Content="End session early" Background="#FFE3EF" Foreground="{StaticResource DangerBrush}" HorizontalAlignment="Left" Click="EndSessionButton_Click" />
+                            <ScrollViewer x:Name="ActiveContentScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False">
+                                <StackPanel>
+                                    <StackPanel>
+                                        <TextBlock x:Name="ActiveMissionText" Text="Deep work" FontSize="25" FontWeight="SemiBold" />
+                                        <TextBlock x:Name="ActiveModeText" Text="STRICT MODE" Foreground="{StaticResource AccentBrush}" Margin="0,6,0,0" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,12,0,0">
+                                        <TextBlock x:Name="CountdownText" Text="00:50:00" FontSize="58" FontWeight="Black" HorizontalAlignment="Center" />
+                                        <TextBlock Text="SESSION REMAINING" Foreground="{StaticResource MutedBrush}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,18,0,7" />
+                                        <ProgressBar x:Name="BossHealthBar" Height="12" Minimum="0" Maximum="100" Value="100" />
+                                        <TextBlock x:Name="SessionSummaryText" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" Margin="0,10,0,22" />
+                                        <TextBlock Text="Recently blocked" Foreground="{StaticResource MutedBrush}" FontWeight="Bold" Margin="0,0,0,6" />
+                                        <ListBox x:Name="BlockedLogList" Height="125" />
+                                    </StackPanel>
+                                    <Button x:Name="EndSessionButton" Content="End session early" Background="#FFE3EF" Foreground="{StaticResource DangerBrush}" HorizontalAlignment="Left" Click="EndSessionButton_Click" Margin="0,12,8,4" />
+                                </StackPanel>
+                            </ScrollViewer>
                         </Grid>
                     </Grid>
                 </Border>
