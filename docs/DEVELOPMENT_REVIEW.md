@@ -137,3 +137,21 @@ The documentation update below is documentation-only; it does not change the tes
 - No production source changed in this milestone. Keep PR #2 Draft; no merge or deployment.
 
 Rollback: revert the non-strict shell acceptance test and this review entry on the existing branch.
+
+## 2026-11-02 — Focus-entry scroll restoration remains blocked
+
+### Observed failure and bounded attempts
+- Baseline run [41349667698](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41349667698) failed the 720-minute real WPF journey at 760×680. The countdown geometry was outside the initial ActiveContentScrollViewer viewport.
+- Test-harness commit 'f58ce124356a6d4014006514555d416666a6cac9' made the test wait for WPF layout and focused the real Start Mission button. CI [41350511086](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41350511086) exposed a declaration-order compile error (CS0841); no test result was claimed.
+- Follow-up commit '433d1c82c58d46debaf1b086a4288d73efa544de' corrected the declaration order. CI [41350741463](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41350741463) built successfully and passed 21/21 Core tests, but the real WPF test measured VerticalOffset=164.12; the countdown was still below the initial viewport. Artifact [13101735234](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41350741463/artifacts/13101735234) confirms the mission header and countdown were scrolled out of view after Start Mission.
+- Production/test commit '4fbb4d704ff194094e7a60c300339453ff3ae797' moves keyboard focus to the selected Focus tab header after WPF layout and resets the active scroll region to the top. The 760×680 screenshot in artifact [13101203375](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41351070770/artifacts/13101203375) now shows the 11:59:59 countdown, mission and mode at the top of the Focus workspace.
+- The same CI run [41351070770](https://github.com/ahpa5246-lgtm/LOCK-IN/actions/runs/41351070770) built successfully with 0 warnings/errors and passed 21/21 Core tests, but the WPF suite passed only 2/4. RestoredStrictSessionShowsFocusWorkspaceAndRejectsCloseUntilExpiry and NonStrictSessionRequiresConfirmationAndEndsWithoutReward failed because their later ScrollToEnd journeys no longer reached the end of the Focus workspace. The deferred focus/scroll reset appears to race with subsequent operator scrolling; dispatcher ordering has not been isolated sufficiently to claim a safe fix.
+
+### Stop condition and next safe action
+- The bounded retry allowance for this Focus-entry task is exhausted. Do not add another equivalent implementation attempt in this cycle.
+- Preserve the current Draft PR and the observed improvement to the 720-minute start screenshot, but treat the branch as BLOCKED — CI failing. The next review must reconcile initial keyboard focus with later user-initiated scrolling, and prove both restored Strict Mode and non-strict early-end journeys before changing the status.
+- No merge, deployment, installer publication or release approval.
+
+### Comparative visual status
+- Direct released-product references remain [Cold Turkey Blocker](https://getcoldturkey.com/features/) and [Freedom](https://freedom.to/splash); the official platform reference remains [Microsoft Windows design guidelines](https://learn.microsoft.com/en-us/windows/apps/design/guidelines-overview).
+- The new screenshot proves the countdown-entry geometry only. It does not close the full visual gate: Comic Sans MS remains global, the mascot/header still dominates the workspace, and keyboard traversal, screen-reader output, Arabic/RTL, restart/resume and broader window-size coverage remain unverified.
