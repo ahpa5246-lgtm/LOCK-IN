@@ -156,14 +156,11 @@ public sealed class StrictSessionShellTests
     private static void CaptureClientArea(Window window, string path)
     {
         window.UpdateLayout();
-        var visual = window.Content as Visual
-            ?? throw new AssertFailedException("The WPF window has no renderable client visual.");
-        var size = ((FrameworkElement)visual).RenderSize;
-        var width = Math.Max(1, (int)Math.Ceiling(size.Width));
-        var height = Math.Max(1, (int)Math.Ceiling(size.Height));
+        var width = Math.Max(1, (int)Math.Ceiling(window.ActualWidth));
+        var height = Math.Max(1, (int)Math.Ceiling(window.ActualHeight));
 
         var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-        bitmap.Render(visual);
+        bitmap.Render(window);
 
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
