@@ -368,8 +368,8 @@ public sealed class StrictSessionShellTests
 
                 var countdown = (TextBlock)window.FindName("CountdownText");
                 var countdownFormat = countdown.Text.Count(character => character == ':') == 2
-                    ? @"hh\\:mm\\:ss"
-                    : @"mm\\:ss";
+                    ? @"hh\:mm\:ss"
+                    : @"mm\:ss";
                 Assert.IsTrue(
                     TimeSpan.TryParseExact(countdown.Text, countdownFormat, CultureInfo.InvariantCulture, TimeSpanStyles.None, out var remaining),
                     $"The real countdown should be parseable; actual text was '{countdown.Text}' using '{countdownFormat}'.");
