@@ -159,6 +159,122 @@ public sealed class StrictSessionShellTests
         }
     }
 
+
+    [STATestMethod]
+    [Timeout(25_000)]
+    public void NonStrictSessionRequiresConfirmationAndEndsWithoutReward()
+    {
+        Assert.IsTrue(OperatingSystem.IsWindows(), "The real WPF shell acceptance is Windows-only.");
+
+        var root = Path.Combine(Path.GetTempPath(), $"lock-in-nonstrict-shell-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        var sessionPath = Path.Combine(root, "active-session.json");
+        MainWindow? window = null;
+        var forceClose = false;
+
+        try
+        {
+            EnsureApplicationResources();
+
+            var now = DateTimeOffset.UtcNow;
+            var session = new FocusSession
+            {
+                MissionName = "Review the report",
+                StartedAtUtc = now.AddMinutes(-1),
+                EndsAtUtc = now.AddMinutes(20),
+                StrictMode = false
+            };
+            new SessionStore(root).SaveAsync(session).GetAwaiter().GetResult();
+
+            var dialogs = new ScriptedUserDialog(MessageBoxResult.No, MessageBoxResult.Yes);
+            var guardian = new ProcessGuardian(
+                "lock-in-test",
+                TimeSpan.FromMilliseconds(50),
+                static () => Array.Empty<Process>());
+
+            window = new MainWindow(root, guardian, dialogs);
+            window.Closing += (_, args) =>
+            {
+                if (forceClose)
+                {
+                    args.Cancel = false;
+                }
+            };
+
+            window.Width = 1100;
+            window.Height = 760;
+            window.Show();
+            window.UpdateLayout();
+
+            var activePanel = (Grid)window.FindName("ActivePanel");
+            var idlePanel = (Grid)window.FindName("IdlePanel");
+            var endSession = (Button)window.FindName("EndSessionButton");
+            Assert.AreEqual(Visibility.Visible, activePanel.Visibility);
+            Assert.AreEqual(Visibility.Collapsed, idlePanel.Visibility);
+            Assert.AreEqual(Visibility.Visible, endSession.Visibility);
+            Assert.IsTrue(endSession.IsEnabled);
+            Assert.IsTrue(File.Exists(sessionPath), "The active non-strict session must be persisted.");
+
+            var evidenceDirectory = Environment.GetEnvironmentVariable("LOCKIN_UI_EVIDENCE_DIR");
+            if (string.IsNullOrWhiteSpace(evidenceDirectory))
+            {
+                evidenceDirectory = Path.Combine(root, "ui-evidence");
+            }
+
+            Directory.CreateDirectory(evidenceDirectory);
+            CaptureClientArea(window, Path.Combine(evidenceDirectory, "non-strict-session-1100x760.png"));
+
+            endSession.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+            Assert.AreEqual(1, dialogs.Calls.Count);
+            Assert.AreEqual(MessageBoxButton.YesNo, dialogs.Calls[0].Buttons);
+            StringAssert.Contains(dialogs.Calls[0].Message, "It will not award XP");
+            Assert.AreEqual(Visibility.Visible, activePanel.Visibility, "Choosing No must keep the session active.");
+            Assert.IsTrue(File.Exists(sessionPath), "Choosing No must preserve the active session record.");
+
+            endSession.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+
+            Assert.AreEqual(2, dialogs.Calls.Count);
+            Assert.AreEqual(Visibility.Collapsed, activePanel.Visibility);
+            Assert.AreEqual(Visibility.Visible, idlePanel.Visibility);
+            Assert.AreEqual("READY", ((System.Windows.Controls.TextBlock)window.FindName("HeaderStatusText")).Text);
+            Assert.IsFalse(File.Exists(sessionPath), "Confirmed early end must clear the active session record.");
+
+            var stats = new StatsStore(root).Load();
+            Assert.AreEqual(0, stats.SessionsCompleted, "An early-ended session must not count as completed.");
+            Assert.AreEqual(0, stats.Xp, "An early-ended session must not award XP.");
+        }
+        finally
+        {
+            if (window is not null && window.IsVisible)
+            {
+                var activePanel = (Grid)window.FindName("ActivePanel");
+                var endSession = (Button)window.FindName("EndSessionButton");
+                if (activePanel.Visibility == Visibility.Visible && endSession.Visibility == Visibility.Visible)
+                {
+                    endSession.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    if (activePanel.Visibility == Visibility.Visible)
+                    {
+                        endSession.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    }
+                }
+
+                forceClose = true;
+                window.Close();
+            }
+
+            if (File.Exists(sessionPath))
+            {
+                File.Delete(sessionPath);
+            }
+
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
     private static void EnsureApplicationResources()
     {
         var application = Application.Current as LockIn.App.App;
@@ -238,6 +354,29 @@ public sealed class StrictSessionShellTests
         {
             Calls.Add(new DialogCall(message, title, buttons, image));
             return MessageBoxResult.OK;
+        }
+    }
+
+
+    private sealed class ScriptedUserDialog : LockIn.App.Services.IUserDialog
+    {
+        private readonly Queue<MessageBoxResult> _answers;
+
+        public ScriptedUserDialog(params MessageBoxResult[] answers)
+        {
+            _answers = new Queue<MessageBoxResult>(answers);
+        }
+
+        public List<DialogCall> Calls { get; } = [];
+
+        public MessageBoxResult Show(
+            string message,
+            string title,
+            MessageBoxButton buttons,
+            MessageBoxImage image)
+        {
+            Calls.Add(new DialogCall(message, title, buttons, image));
+            return _answers.Count > 0 ? _answers.Dequeue() : MessageBoxResult.Yes;
         }
     }
 
